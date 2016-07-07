@@ -1,0 +1,10 @@
+version: '2'
+services:
+  server:
+    volumes:
+      - ".:/usr/src/app"
+    ports:
+      - "14444:8000"
+    environment:
+      BITBUCKET_USERNAME: quoin-bot
+      JENKINS_URL: http://forwarder.test.quoininc.com:15080
