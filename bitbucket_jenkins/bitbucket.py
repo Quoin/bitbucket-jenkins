@@ -12,19 +12,20 @@ class BitBucketClient():
         self.password = password
 
     def _do_req(self, method, url, data):
-        logging.info("Sending %s request to bitbucket endpoint %s: %s" % (method, url, data))
+        logging.info("Sending %s request to bitbucket endpoint %s: %s", method, url, data)
 
         resp = requests.request(method, url, json=data, auth=(self.username,
                                                               self.password))
 
-        logging.debug("Received %s response from bitbucket API: %s" % (resp.status_code,
-                                                                       resp.content,))
+        logging.debug("Received %s response from bitbucket API: %s",
+                      resp.status_code, resp.content)
 
     def url(self, owner, repo_slug, command_path):
         return ("https://api.bitbucket.org/2.0/repositories/{owner}/{repo_slug}"
-               "{command_path}".format(owner=owner, repo_slug=repo_slug, command_path=command_path))
+                "{command_path}".format(owner=owner, repo_slug=repo_slug, command_path=command_path))
 
-    def notify_build_changed(self, owner, repo_slug, revision, status, job_name, build_num=None, job_url=None):
+    def notify_build_changed(self, owner, repo_slug, revision, status,
+                             job_name, job_url=None):
         self._do_req("POST",
                      self.url(owner,
                               repo_slug,

@@ -1,9 +1,10 @@
 import base64
 import logging
-from mako.template import Template
 import os
-import requests
 from urllib.parse import urljoin
+
+from mako.template import Template
+import requests
 
 from jenkinsapi.jenkins import Jenkins
 
@@ -35,14 +36,14 @@ class JenkinsGroovy():
         return content + '\nprintln("{0}");'.format(token), token
 
     def _do_script_request(self, script_content):
-        logging.debug("Submitting script to Jenkins:\n%s" % script_content)
+        logging.debug("Submitting script to Jenkins:\n%s", script_content)
 
         script_url = urljoin(self.jenkins_url, '/scriptText')
 
         resp = requests.post(script_url, data={"script": script_content},
-                            auth=(self.username, self.password))
+                             auth=(self.username, self.password))
 
-        logging.debug("Groovy output from Jenkins:\n%s" % resp.content)
+        logging.debug("Groovy output from Jenkins:\n%s", resp.content)
 
         return resp.content.decode('utf-8')
 
@@ -50,6 +51,7 @@ class JenkinsGroovy():
         script_content, token = self._read_script(script_path)
         rendered_script = Template(script_content).render(**script_vars)
 
+        logging.debug("Invoking groovy script on Jenkins:\n%s", rendered_script)
         output = self._do_script_request(rendered_script)
 
         if token not in output:
@@ -64,11 +66,20 @@ class JenkinsClient():
         self.client = Jenkins(jenkins_url, username, password)
 
     def start_build(self, job_name, commit_id, pr_title, pr_link):
-        logging.info("Invoking Jenkins build for job %s, commit_id=%s" %
-                     (job_name, commit_id))
-        queue_item = self.client[job_name].invoke(build_params=dict(revision=commit_id))
+        logging.info("Invoking Jenkins build for job %s, commit_id=%s, pr_link=%s",
+                     job_name, commit_id, pr_link)
+
+        queue_item = self.client[job_name].invoke(build_params=dict(revision=commit_id),
+                                                  cause=pr_link)
+        return queue_item.queue_id
 
     def setup_notification_plugin(self, notifier_base_url, job_names):
         self.groovy.run('add_notification_plugin.groovy',
                         {"notification_url": urljoin(notifier_base_url, '/jenkins-notifier/'),
                          "job_names": job_names})
+
+    def set_build_description(self, job_name, build_number, description):
+        self.groovy.run('set_build_description.groovy',
+                        {"job_name": job_name,
+                         "build_number": build_number,
+                         "description": description})
